@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./DaftarNama.css";
 
 export default function DaftarNama() {
     const [inputValue, setInputValue] = useState("");
