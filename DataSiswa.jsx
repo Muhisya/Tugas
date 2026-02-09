@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useImmerReducer } from 'use-immer';
 import "./DataSiswa.css";
 
-// --- Initial State ---
 const initialState = {
   students: [
     { id: 1, nama: 'Baraka Ramadhan', umur: 16, kelas: '10-A' },
@@ -10,7 +9,6 @@ const initialState = {
   ]
 };
 
-// --- Reducer Logic dengan Immer ---
 function studentReducer(draft, action) {
   switch (action.type) {
     case 'ADD_DATA':
@@ -34,17 +32,14 @@ function studentReducer(draft, action) {
 export default function StudentManager() {
   const [state, dispatch] = useImmerReducer(studentReducer, initialState);
   
-  // State untuk form input
   const [formData, setFormData] = useState({ id: null, nama: '', umur: '', kelas: '' });
   const [isEditing, setIsEditing] = useState(false);
 
-  // Handler Input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Submit Handler (Create & Update)
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.nama || !formData.umur || !formData.kelas) return alert("Mohon isi semua field!");
@@ -63,7 +58,6 @@ export default function StudentManager() {
     setFormData({ id: null, nama: '', umur: '', kelas: '' }); // Reset form
   };
 
-  // Set form untuk edit
   const handleEditClick = (student) => {
     setIsEditing(true);
     setFormData(student);
@@ -73,7 +67,6 @@ export default function StudentManager() {
     <div className="container">
       <h2>Manajemen Data Siswa</h2>
 
-      {/* Form Input */}
       <form onSubmit={handleSubmit} className="student-form">
         <input name="nama" placeholder="Nama Siswa" value={formData.nama} onChange={handleChange} />
         <input name="umur" type="number" placeholder="Umur" value={formData.umur} onChange={handleChange} />
@@ -83,7 +76,6 @@ export default function StudentManager() {
         </button>
       </form>
 
-      {/* Tabel Data */}
       <table className="student-table">
         <thead>
           <tr>
