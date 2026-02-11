@@ -1,104 +1,167 @@
-import React, { useState } from 'react';
-import { useImmerReducer } from 'use-immer';
+import { createContext, useContext, useState, useEffect } from "react";
+import { useImmerReducer } from "use-immer";
 import "./DataSiswa.css";
 
-const initialState = {
-  students: [
-    { id: 1, nama: 'Baraka Ramadhan', umur: 16, kelas: '10-A' },
-    { id: 2, nama: 'Bintang Maulana lazuardy', umur: 15, kelas: '10-B' }
-  ]
-};
+const StudentContext = createContext(null);
 
 function studentReducer(draft, action) {
   switch (action.type) {
-    case 'ADD_DATA':
-      draft.students.push(action.payload);
+    case "ADD_STUDENT":
+      draft.push(action.payload);
       break;
-    case 'DELETE_DATA':
-      const indexToDelete = draft.students.findIndex(s => s.id === action.payload);
-      if (indexToDelete !== -1) draft.students.splice(indexToDelete, 1);
-      break;
-    case 'EDIT_DATA':
-      const indexToEdit = draft.students.findIndex(s => s.id === action.payload.id);
-      if (indexToEdit !== -1) {
-        draft.students[indexToEdit] = action.payload;
+
+    case "DELETE_STUDENT":
+      return draft.filter((s) => s.id !== action.payload);
+
+    case "UPDATE_STUDENT": {
+      const index = draft.findIndex((s) => s.id === action.payload.id);
+      if (index !== -1) {
+        draft[index] = action.payload;
       }
       break;
+    }
+
     default:
       break;
   }
 }
 
-export default function StudentManager() {
-  const [state, dispatch] = useImmerReducer(studentReducer, initialState);
-  
-  const [formData, setFormData] = useState({ id: null, nama: '', umur: '', kelas: '' });
-  const [isEditing, setIsEditing] = useState(false);
+export default function DataSiswa() {
+  const [students, dispatch] = useImmerReducer(studentReducer, [
+    { id: 1, nama: "Baraka Ramadhan", umur: 16, kelas: "10-A" },
+    { id: 2, nama: "Bintang Maulana Lazuardy", umur: 15, kelas: "10-B" },
+  ]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.nama || !formData.umur || !formData.kelas) return alert("Mohon isi semua field!");
-
-    if (isEditing) {
-      dispatch({ type: 'EDIT_DATA', payload: { ...formData, umur: parseInt(formData.umur) } });
-      setIsEditing(false);
-    } else {
-      const newData = { 
-        ...formData, 
-        id: Date.now(), 
-        umur: parseInt(formData.umur) 
-      };
-      dispatch({ type: 'ADD_DATA', payload: newData });
-    }
-    setFormData({ id: null, nama: '', umur: '', kelas: '' }); // Reset form
-  };
-
-  const handleEditClick = (student) => {
-    setIsEditing(true);
-    setFormData(student);
-  };
+  const [editingStudent, setEditingStudent] = useState(null);
 
   return (
-    <div className="container">
-      <h2>Manajemen Data Siswa</h2>
+    <StudentContext.Provider
+      value={{ students, dispatch, editingStudent, setEditingStudent }}
+    >
+      <div className="container">
+        <h2>Manajemen Data Siswa</h2>
+        <StudentForm />
+        <StudentTable />
+      </div>
+    </StudentContext.Provider>
+  );
+}
 
-      <form onSubmit={handleSubmit} className="student-form">
-        <input name="nama" placeholder="Nama Siswa" value={formData.nama} onChange={handleChange} />
-        <input name="umur" type="number" placeholder="Umur" value={formData.umur} onChange={handleChange} />
-        <input name="kelas" placeholder="Kelas" value={formData.kelas} onChange={handleChange} />
-        <button type="submit" className={isEditing ? "btn-edit" : "btn-add"}>
-          {isEditing ? 'Update Data' : 'Tambah Siswa'}
-        </button>
-      </form>
+function StudentForm() {
+  const { dispatch, editingStudent, setEditingStudent } =
+    useContext(StudentContext);
 
-      <table className="student-table">
-        <thead>
-          <tr>
-            <th>Nama</th>
-            <th>Umur</th>
-            <th>Kelas</th>
-            <th>Aksi</th>
+  const [form, setForm] = useState({
+    id: null,
+    nama: "",
+    umur: "",
+    kelas: "",
+  });
+
+  // ✅ update form saat edit
+  useEffect(() => {
+    if (editingStudent) {
+      setForm(editingStudent);
+    }
+  }, [editingStudent]);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    if (!form.nama || !form.umur || !form.kelas) return;
+
+    if (editingStudent) {
+      dispatch({
+        type: "UPDATE_STUDENT",
+        payload: { ...form, umur: Number(form.umur) },
+      });
+      setEditingStudent(null);
+    } else {
+      dispatch({
+        type: "ADD_STUDENT",
+        payload: {
+          ...form,
+          id: Date.now(),
+          umur: Number(form.umur),
+        },
+      });
+    }
+
+    setForm({ id: null, nama: "", umur: "", kelas: "" });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="student-form">
+      <input
+        placeholder="Nama"
+        value={form.nama}
+        onChange={(e) => setForm({ ...form, nama: e.target.value })}
+      />
+
+      <input
+        type="number"
+        placeholder="Umur"
+        value={form.umur}
+        onChange={(e) => setForm({ ...form, umur: e.target.value })}
+      />
+
+      <input
+        placeholder="Kelas"
+        value={form.kelas}
+        onChange={(e) => setForm({ ...form, kelas: e.target.value })}
+      />
+
+      <button
+        type="submit"
+        className={editingStudent ? "btn-edit" : "btn-add"}
+      >
+        {editingStudent ? "Update" : "Tambah"}
+      </button>
+    </form>
+  );
+}
+
+function StudentTable() {
+  const { students, dispatch, setEditingStudent } =
+    useContext(StudentContext);
+
+  return (
+    <table className="student-table">
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Umur</th>
+          <th>Kelas</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {students.map((s) => (
+          <tr key={s.id}>
+            <td>{s.nama}</td>
+            <td>{s.umur} Tahun</td>
+            <td>{s.kelas}</td>
+            <td>
+              <button
+                className="action-btn edit"
+                onClick={() => setEditingStudent(s)}
+              >
+                Edit
+              </button>
+
+              <button
+                className="action-btn delete"
+                onClick={() =>
+                  dispatch({ type: "DELETE_STUDENT", payload: s.id })
+                }
+              >
+                Hapus
+              </button>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {state.students.map((student) => (
-            <tr key={student.id}>
-              <td>{student.nama}</td>
-              <td>{student.umur} Tahun</td>
-              <td>{student.kelas}</td>
-              <td>
-                <button className="action-btn edit" onClick={() => handleEditClick(student)}>Edit</button>
-                <button className="action-btn delete" onClick={() => dispatch({ type: 'DELETE_DATA', payload: student.id })}>Hapus</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }
